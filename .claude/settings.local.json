@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(\\(Get-Command winget -ErrorAction SilentlyContinue\\).Source)",
+      "PowerShell(winget install *)"
+    ]
+  }
+}
