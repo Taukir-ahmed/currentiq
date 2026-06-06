@@ -41,7 +41,7 @@ const Flashcards = () => {
     const fetchFlashcards = async () => {
       try {
         setIsLoading(true);
-        const { data, error } = await supabase.from('flashcard').select('*');
+        const { data, error } = await supabase.from('flashcard').select('*').limit(5000);
         if (error) throw error;
 
         const grouped = data.reduce((acc, card) => {

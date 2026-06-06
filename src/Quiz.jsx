@@ -26,10 +26,12 @@ const sortWeeks = (weeks) =>
 
 const Quiz = () => {
   const navigate = useNavigate();
+  // monthData shape: { [month]: { [week]: count } } — counts only, no question content
   const [monthData, setMonthData] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedMonth, setExpandedMonth] = useState(null);
+  const [loadingWeek, setLoadingWeek] = useState(null); // "month||week" key while fetching
 
   // Phase flow: list → config → play → result
   const [phase, setPhase] = useState('list');
@@ -39,18 +41,18 @@ const Quiz = () => {
   const [quizAnswers, setQuizAnswers] = useState([]);
 
   useEffect(() => {
-    const fetchQuestions = async () => {
+    const fetchStructure = async () => {
       try {
         setIsLoading(true);
-        const { data, error } = await supabase.from('questions').select('*');
+        // Only fetch month + week — no question content needed for the list view
+        const { data, error } = await supabase.from('questions').select('month, week').limit(5000);
         if (error) throw error;
 
         const grouped = data.reduce((acc, q) => {
           const month = q.month || 'Unknown Month';
           const week = q.week || 'Unknown Week';
           if (!acc[month]) acc[month] = {};
-          if (!acc[month][week]) acc[month][week] = [];
-          acc[month][week].push(q);
+          acc[month][week] = (acc[month][week] || 0) + 1;
           return acc;
         }, {});
 
@@ -63,12 +65,27 @@ const Quiz = () => {
         setIsLoading(false);
       }
     };
-    fetchQuestions();
+    fetchStructure();
   }, []);
 
-  const openWeek = (month, week, questions) => {
-    setSelectedDeck({ name: `${month} — ${week}`, questions });
-    setPhase('config');
+  const openWeek = async (month, week) => {
+    const key = `${month}||${week}`;
+    setLoadingWeek(key);
+    try {
+      const { data, error } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('month', month)
+        .eq('week', week)
+        .limit(500);
+      if (error) throw error;
+      setSelectedDeck({ name: `${month} — ${week}`, questions: data });
+      setPhase('config');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoadingWeek(null);
+    }
   };
 
   const handleStartQuiz = ({ questionCount, timerMinutes: mins }) => {
@@ -121,7 +138,7 @@ const Quiz = () => {
   // ─── List View ─────────────────────────────────────────────────────────────
   const months = sortMonthsDesc(Object.keys(monthData));
   const totalQuestions = months.reduce((sum, m) =>
-    sum + Object.values(monthData[m]).reduce((s, qs) => s + qs.length, 0), 0
+    sum + Object.values(monthData[m]).reduce((s, count) => s + count, 0), 0
   );
   const totalWeeks = months.reduce((sum, m) => sum + Object.keys(monthData[m]).length, 0);
 
@@ -167,7 +184,7 @@ const Quiz = () => {
             <div className="flex flex-col gap-3">
               {months.map((month) => {
                 const weeks = sortWeeks(Object.keys(monthData[month]));
-                const monthTotal = weeks.reduce((s, w) => s + monthData[month][w].length, 0);
+                const monthTotal = weeks.reduce((s, w) => s + monthData[month][w], 0);
                 const isOpen = expandedMonth === month;
 
                 return (
@@ -198,18 +215,28 @@ const Quiz = () => {
                     {isOpen && (
                       <div className="border-t border-gray-100 px-6 py-3 flex flex-col gap-2">
                         {weeks.map((week) => {
-                          const questions = monthData[month][week];
+                          const count = monthData[month][week];
+                          const weekKey = `${month}||${week}`;
+                          const isWeekLoading = loadingWeek === weekKey;
                           return (
                             <button
                               key={week}
-                              onClick={() => openWeek(month, week, questions)}
-                              className="flex items-center justify-between w-full px-4 py-3 rounded-xl bg-gray-50 hover:bg-orange-50 hover:border-orange-200 border border-transparent transition-all group"
+                              onClick={() => openWeek(month, week)}
+                              disabled={!!loadingWeek}
+                              className="flex items-center justify-between w-full px-4 py-3 rounded-xl bg-gray-50 hover:bg-orange-50 hover:border-orange-200 border border-transparent transition-all group disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                               <div className="flex items-center gap-3">
                                 <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center">
-                                  <span className="text-blue-700 font-black text-xs">
-                                    {week.replace(/\D/g, '') || '?'}
-                                  </span>
+                                  {isWeekLoading ? (
+                                    <svg className="animate-spin h-3.5 w-3.5 text-blue-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                    </svg>
+                                  ) : (
+                                    <span className="text-blue-700 font-black text-xs">
+                                      {week.replace(/\D/g, '') || '?'}
+                                    </span>
+                                  )}
                                 </div>
                                 <span className="font-bold text-gray-700 text-sm group-hover:text-orange-700 transition-colors">
                                   {week}
@@ -217,7 +244,7 @@ const Quiz = () => {
                               </div>
                               <div className="flex items-center gap-2">
                                 <span className="text-xs font-bold text-gray-400 group-hover:text-orange-400">
-                                  {questions.length} {questions.length === 1 ? 'question' : 'questions'}
+                                  {count} {count === 1 ? 'question' : 'questions'}
                                 </span>
                                 <span className="text-gray-300 group-hover:text-orange-400 transition-colors">→</span>
                               </div>

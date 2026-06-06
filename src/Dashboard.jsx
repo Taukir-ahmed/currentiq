@@ -50,13 +50,13 @@ const Dashboard = () => {
     const fetchAll = async () => {
       // Flashcard latest
       try {
-        const { data } = await supabase.from('flashcard').select('month, week');
+        const { data } = await supabase.from('flashcard').select('month, week').limit(5000);
         setFlashcardInfo(getLatestWeekInfo(data));
       } catch {}
 
       // Quiz latest
       try {
-        const { data } = await supabase.from('questions').select('month, week');
+        const { data } = await supabase.from('questions').select('month, week').limit(5000);
         setQuizInfo(getLatestWeekInfo(data));
       } catch {}
 
