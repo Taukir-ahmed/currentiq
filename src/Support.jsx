@@ -95,7 +95,7 @@ const Support = () => {
               href="mailto:support@caweekly.app"
               className="text-xs font-bold text-sky-500 hover:text-sky-700 transition-colors"
             >
-              support@caweekly.app →
+              taukir.ahmad65@gmail.com →
             </a>
           </div>
         </div>
