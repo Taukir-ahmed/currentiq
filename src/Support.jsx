@@ -92,8 +92,9 @@ const Support = () => {
               For content errors, bugs, or anything else — drop us an email and we'll get back to you.
             </p>
             <a
-              href="mailto:support@caweekly.app"
-              className="text-xs font-bold text-sky-500 hover:text-sky-700 transition-colors"
+              href="mailto:taukir.ahmad65@gmail.com"
+              className="text-xs font-bold text-sky-500 hover:text-sky-700 transition-colors block truncate"
+              title="taukir.ahmad65@gmail.com"
             >
               taukir.ahmad65@gmail.com →
             </a>
