@@ -3,19 +3,19 @@ import { Link } from 'react-router-dom';
 
 const faqs = [
   {
-    q: 'Is CurrentIQ completely free?',
+    q: 'Is this app completely free?',
     a: 'Yes. Every feature — Flashcards, Quiz, and Focus Module — is free to use with no subscription, no paywall, and no hidden tier.',
   },
   {
     q: 'Do I need to create an account?',
-    a: 'No. There is no login, no sign-up, and no account of any kind. Open the platform and start studying immediately.',
+    a: 'No. There is no login, no sign-up, and no account of any kind. Open the app and start studying immediately.',
   },
   {
     q: 'How often is content updated?',
     a: 'Content is added on a weekly basis. Each new week brings fresh flashcards, new MCQs, and an updated Focus Module covering the most exam-relevant events of that week.',
   },
   {
-    q: 'What topics does CurrentIQ cover?',
+    q: 'What topics does this app cover?',
     a: 'We cover topics relevant to competitive exams — Polity & Governance, Economy & Finance, International Relations, Science & Technology, Environment & Ecology, Sports, and more. Content is tagged by category so you can filter to what you need.',
   },
   {
@@ -36,11 +36,11 @@ const faqs = [
   },
   {
     q: 'Will my quiz scores or flashcard progress be saved?',
-    a: 'Not currently. CurrentIQ has no accounts and stores no personal data, so session progress is not persisted between visits. We may introduce optional local progress tracking in a future update.',
+    a: 'Quiz scores are saved anonymously to track your progress over time. No personal information is stored — your data is not linked to any identity.',
   },
   {
     q: 'I found a mistake in the content. How do I report it?',
-    a: 'Please email us with the subject line "Content Error" and include the week, the question or card in question, and what you believe the correct information is. We review all reports and update content as needed.',
+    a: 'Please reach out via email with the subject line "Content Error" and include the week, the question or card in question, and what you believe the correct information is. We review all reports and update content as needed.',
   },
 ];
 
@@ -84,20 +84,18 @@ const Support = () => {
       <section className="grid grid-cols-2 gap-4 mb-8">
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col gap-3">
           <div className="w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center text-xl">
-            ✈️
+            ✉️
           </div>
           <div>
-            <p className="font-black text-[#1a2e4c] text-sm mb-1">Telegram</p>
+            <p className="font-black text-[#1a2e4c] text-sm mb-1">Email Us</p>
             <p className="text-xs text-gray-400 mb-3 leading-relaxed">
-              For content errors, bugs, or anything else — message us directly on Telegram.
+              For content errors, bugs, or anything else — drop us an email and we'll get back to you.
             </p>
             <a
-              href="https://t.me/currentiqapp"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="mailto:support@caweekly.app"
               className="text-xs font-bold text-sky-500 hover:text-sky-700 transition-colors"
             >
-              @currentiq →
+              support@caweekly.app →
             </a>
           </div>
         </div>
@@ -134,7 +132,7 @@ const Support = () => {
             to="/about"
             className="bg-white px-4 py-2 rounded-full text-sm font-bold text-gray-700 border border-gray-200 hover:border-gray-400 transition-colors"
           >
-            About CurrentIQ
+            About
           </Link>
           <Link
             to="/privacy"

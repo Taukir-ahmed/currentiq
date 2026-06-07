@@ -37,8 +37,8 @@ const Sidebar = ({ isOpen, onClose }) => {
       <div>
         <div className="mb-10">
           <h1 className="text-3xl font-black tracking-wide flex items-center gap-1">
-            <span>CURRENT</span>
-            <span className="text-orange-500">IQ</span>
+            <span>CA</span>
+            <span className="text-orange-500">Weekly</span>
           </h1>
           <p className="text-[10px] uppercase tracking-[0.2em] text-gray-400 mt-1">
             High-Yield Digest

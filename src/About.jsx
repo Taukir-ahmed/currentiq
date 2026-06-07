@@ -17,13 +17,13 @@ const About = () => {
 
       {/* Hero */}
       <section className="bg-[#1a2e4c] text-white rounded-3xl p-10 mb-8">
-        <p className="text-xs font-bold uppercase tracking-widest text-orange-400 mb-3">About CurrentIQ</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-orange-400 mb-3">About CA Weekly</p>
         <h1 className="text-4xl font-black leading-tight mb-4">
           Stay sharp on current affairs —<br />
           <span className="text-orange-400">without paying a fortune.</span>
         </h1>
         <p className="text-gray-300 text-base leading-relaxed max-w-xl">
-          CurrentIQ is a focused current affairs platform built for serious learners. We deliver
+          CA Weekly is a focused current affairs platform built for serious learners. We deliver
           the same quality of preparation tools that premium coaching apps charge hundreds for —
           completely streamlined and accessible.
         </p>
@@ -42,7 +42,7 @@ const About = () => {
           high-quality, structured material without a monthly fee eating into their budget.
         </p>
         <p className="text-gray-600 leading-relaxed">
-          CurrentIQ curates, formats, and delivers current affairs every week in three powerful
+          CA Weekly curates, formats, and delivers current affairs every week in three powerful
           formats that complement each other — so you retain more in less time.
         </p>
       </section>
@@ -74,9 +74,9 @@ const About = () => {
         </div>
       </section>
 
-      {/* Why CurrentIQ */}
+      {/* Why CA Weekly */}
       <section className="bg-[#f0f4f8] rounded-3xl p-8 mb-8">
-        <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Why CurrentIQ</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Why CA Weekly</p>
         <h2 className="text-2xl font-black text-[#1a2e4c] mb-6">Built different, on purpose.</h2>
 
         <div className="grid grid-cols-2 gap-4">
