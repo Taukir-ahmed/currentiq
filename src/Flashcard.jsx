@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from './supabaseClient';
-import FlashcardConfig from './FlashcardConfig';
-import FlashcardPlay from './FlashcardPlay';
-import FlashcardResult from './FlashcardResult';
+import QuizConfig from './QuizConfig';
+import QuizPlay from './QuizPlay';
+import QuizResult from './QuizResult';
 
 const MONTHS = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+
 const sortMonthsDesc = (months) =>
   [...months].sort((a, b) => {
     const al = a.toLowerCase(), bl = b.toLowerCase();
@@ -24,37 +25,36 @@ const sortWeeks = (weeks) =>
     return numA - numB;
   });
 
-const Flashcards = () => {
+const Quiz = () => {
   const navigate = useNavigate();
-  // monthData shape: { [month]: { [week]: count } } — counts only, no card content
   const [monthData, setMonthData] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedMonth, setExpandedMonth] = useState(null);
-  const [loadingDeck, setLoadingDeck] = useState(null); // "month||week" key while fetching
+  const [loadingWeek, setLoadingWeek] = useState(null);
 
-  // Phase flow: list → config → play → result
   const [phase, setPhase] = useState('list');
-  const [selectedDeck, setSelectedDeck] = useState(null); // { name, cards }
-  const [playConfig, setPlayConfig] = useState(null); // { cards, retryEnabled }
-  const [sessionResult, setSessionResult] = useState(null); // { solvedCount, retryCount }
+  const [selectedDeck, setSelectedDeck] = useState(null);
+  const [playQuestions, setPlayQuestions] = useState([]);
+  const [timerMinutes, setTimerMinutes] = useState(0);
+  const [quizAnswers, setQuizAnswers] = useState([]);
 
   useEffect(() => {
     const fetchStructure = async () => {
       try {
         setIsLoading(true);
-        // Only fetch month + week — no card content needed for the list view
-        const { data, error } = await supabase.from('flashcard').select('month, week').limit(5000);
+    
+        const { data, error } = await supabase.rpc('get_distinct_flashcard_month_week');
         if (error) throw error;
-
-        const grouped = data.reduce((acc, card) => {
-          const month = card.month || 'Unknown Month';
-          const week = card.week || 'Unknown Week';
+    
+        const grouped = data.reduce((acc, row) => {
+          const month = (row.month || 'Unknown Month').trim();
+          const week  = (row.week  || 'Unknown Week').trim();
           if (!acc[month]) acc[month] = {};
-          acc[month][week] = (acc[month][week] || 0) + 1;
+          acc[month][week] = Number(row.card_count) || 0;
           return acc;
         }, {});
-
+    
         setMonthData(grouped);
         const sorted = sortMonthsDesc(Object.keys(grouped));
         if (sorted[0]) setExpandedMonth(sorted[0]);
@@ -67,43 +67,44 @@ const Flashcards = () => {
     fetchStructure();
   }, []);
 
-  const openDeck = async (month, week) => {
+  const openWeek = async (month, week) => {
     const key = `${month}||${week}`;
-    setLoadingDeck(key);
+    setLoadingWeek(key);
     try {
       const { data, error } = await supabase
-        .from('flashcard')
+        .from('questions')
         .select('*')
         .eq('month', month)
         .eq('week', week)
         .limit(500);
       if (error) throw error;
-      setSelectedDeck({ name: `${month} — ${week}`, cards: data });
+      setSelectedDeck({ name: `${month} — ${week}`, questions: data });
       setPhase('config');
     } catch (err) {
       setError(err.message);
     } finally {
-      setLoadingDeck(null);
+      setLoadingWeek(null);
     }
   };
 
-  const handleStartSession = ({ cards, retryEnabled }) => {
-    setPlayConfig({ cards, retryEnabled });
+  const handleStartQuiz = ({ questionCount, timerMinutes: mins }) => {
+    const shuffled = [...selectedDeck.questions].sort(() => Math.random() - 0.5);
+    setPlayQuestions(shuffled.slice(0, questionCount));
+    setTimerMinutes(mins);
     setPhase('play');
   };
 
-  const handleFinishSession = ({ solvedCount, retryCount }) => {
-    setSessionResult({ solvedCount, retryCount });
+  const handleFinishQuiz = (answers) => {
+    setQuizAnswers(answers);
     setPhase('result');
   };
 
-  // ─── Phase Views ───────────────────────────────────────────────────────────
   if (phase === 'config') {
     return (
-      <FlashcardConfig
+      <QuizConfig
         deckName={selectedDeck.name}
-        cards={selectedDeck.cards}
-        onStart={handleStartSession}
+        questions={selectedDeck.questions}
+        onStart={handleStartQuiz}
         onBack={() => setPhase('list')}
       />
     );
@@ -111,11 +112,11 @@ const Flashcards = () => {
 
   if (phase === 'play') {
     return (
-      <FlashcardPlay
+      <QuizPlay
         deckName={selectedDeck.name}
-        cards={playConfig.cards}
-        retryEnabled={playConfig.retryEnabled}
-        onFinish={handleFinishSession}
+        questions={playQuestions}
+        timerMinutes={timerMinutes}
+        onFinish={handleFinishQuiz}
         onBack={() => setPhase('config')}
       />
     );
@@ -123,10 +124,9 @@ const Flashcards = () => {
 
   if (phase === 'result') {
     return (
-      <FlashcardResult
+      <QuizResult
         deckName={selectedDeck.name}
-        solvedCount={sessionResult.solvedCount}
-        retryCount={sessionResult.retryCount}
+        answers={quizAnswers}
         onRetry={() => setPhase('config')}
         onBackToHome={() => navigate('/')}
       />
@@ -135,7 +135,7 @@ const Flashcards = () => {
 
   // ─── List View ─────────────────────────────────────────────────────────────
   const months = sortMonthsDesc(Object.keys(monthData));
-  const totalCards = months.reduce((sum, m) =>
+  const totalQuestions = months.reduce((sum, m) =>
     sum + Object.values(monthData[m]).reduce((s, count) => s + count, 0), 0
   );
   const totalWeeks = months.reduce((sum, m) => sum + Object.keys(monthData[m]).length, 0);
@@ -143,8 +143,8 @@ const Flashcards = () => {
   return (
     <div className="max-w-3xl mx-auto">
       <header className="mb-8">
-        <h2 className="text-3xl font-black text-[#1a2e4c] tracking-tight">Active Recall</h2>
-        <p className="text-gray-500 mt-2">Browse by month and week. Tap a week to start studying.</p>
+        <h2 className="text-3xl font-black text-[#1a2e4c] tracking-tight">Practice Pool</h2>
+        <p className="text-gray-500 mt-2">Browse by month and week. Tap a week to start practising.</p>
       </header>
 
       {isLoading && (
@@ -153,13 +153,13 @@ const Flashcards = () => {
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
           </svg>
-          <p className="font-medium">Loading decks...</p>
+          <p className="font-medium">Fetching questions...</p>
         </div>
       )}
 
       {error && (
         <div className="bg-red-50 text-red-600 p-6 rounded-2xl border border-red-100">
-          <p className="font-bold">Failed to load flashcards.</p>
+          <p className="font-bold">Failed to load questions.</p>
           <p className="text-sm">{error}</p>
         </div>
       )}
@@ -167,8 +167,8 @@ const Flashcards = () => {
       {!isLoading && !error && (
         <>
           <section className="bg-[#1a2e4c] text-white rounded-3xl p-8 mb-8 shadow-md">
-            <p className="text-xs font-bold uppercase tracking-wider text-orange-400 mb-2">Your Library</p>
-            <h3 className="text-3xl font-black mb-1">{totalCards} Cards</h3>
+            <p className="text-xs font-bold uppercase tracking-wider text-orange-400 mb-2">Question Bank</p>
+            <h3 className="text-3xl font-black mb-1">{totalQuestions} Questions</h3>
             <p className="text-gray-300 text-sm font-medium">
               {months.length} {months.length === 1 ? 'Month' : 'Months'} &nbsp;·&nbsp; {totalWeeks} {totalWeeks === 1 ? 'Week' : 'Weeks'}
             </p>
@@ -176,7 +176,7 @@ const Flashcards = () => {
 
           {months.length === 0 ? (
             <div className="bg-white p-8 rounded-2xl border border-gray-100 text-center">
-              <p className="text-gray-500 font-medium">No flashcards found in the database.</p>
+              <p className="text-gray-500 font-medium">No questions found in the database.</p>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
@@ -198,7 +198,7 @@ const Flashcards = () => {
                         <div className="text-left">
                           <p className="font-black text-[#1a2e4c] text-base">{month}</p>
                           <p className="text-xs text-gray-400 font-medium">
-                            {weeks.length} {weeks.length === 1 ? 'week' : 'weeks'} · {monthTotal} cards
+                            {weeks.length} {weeks.length === 1 ? 'week' : 'weeks'} · {monthTotal} questions
                           </p>
                         </div>
                       </div>
@@ -214,24 +214,24 @@ const Flashcards = () => {
                       <div className="border-t border-gray-100 px-6 py-3 flex flex-col gap-2">
                         {weeks.map((week) => {
                           const count = monthData[month][week];
-                          const deckKey = `${month}||${week}`;
-                          const isDeckLoading = loadingDeck === deckKey;
+                          const weekKey = `${month}||${week}`;
+                          const isWeekLoading = loadingWeek === weekKey;
                           return (
                             <button
                               key={week}
-                              onClick={() => openDeck(month, week)}
-                              disabled={!!loadingDeck}
+                              onClick={() => openWeek(month, week)}
+                              disabled={!!loadingWeek}
                               className="flex items-center justify-between w-full px-4 py-3 rounded-xl bg-gray-50 hover:bg-orange-50 hover:border-orange-200 border border-transparent transition-all group disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                               <div className="flex items-center gap-3">
-                                <div className="w-7 h-7 rounded-lg bg-teal-100 flex items-center justify-center">
-                                  {isDeckLoading ? (
-                                    <svg className="animate-spin h-3.5 w-3.5 text-teal-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center">
+                                  {isWeekLoading ? (
+                                    <svg className="animate-spin h-3.5 w-3.5 text-blue-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                                     </svg>
                                   ) : (
-                                    <span className="text-teal-700 font-black text-xs">
+                                    <span className="text-blue-700 font-black text-xs">
                                       {week.replace(/\D/g, '') || '?'}
                                     </span>
                                   )}
@@ -242,7 +242,7 @@ const Flashcards = () => {
                               </div>
                               <div className="flex items-center gap-2">
                                 <span className="text-xs font-bold text-gray-400 group-hover:text-orange-400">
-                                  {count} cards
+                                  {count} {count === 1 ? 'question' : 'questions'}
                                 </span>
                                 <span className="text-gray-300 group-hover:text-orange-400 transition-colors">→</span>
                               </div>
@@ -262,4 +262,4 @@ const Flashcards = () => {
   );
 };
 
-export default Flashcards;
+export default Quiz;

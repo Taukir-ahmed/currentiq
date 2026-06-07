@@ -7,6 +7,9 @@ const MONTHS = ['january','february','march','april','may','june','july','august
 const sortMonthsDesc = (months) =>
   [...months].sort((a, b) => {
     const al = a.toLowerCase(), bl = b.toLowerCase();
+    const aYear = parseInt(al.match(/\d{4}/)?.[0] ?? '0');
+    const bYear = parseInt(bl.match(/\d{4}/)?.[0] ?? '0');
+    if (aYear !== bYear) return bYear - aYear;
     const aM = MONTHS.findIndex(m => al.includes(m));
     const bM = MONTHS.findIndex(m => bl.includes(m));
     return bM - aM;
@@ -21,23 +24,14 @@ const sortWeeksDesc = (weeks) =>
 
 const cap = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
 
-const groupByMonthWeek = (data) =>
-  data.reduce((acc, item) => {
-    const month = item.month || 'Unknown';
-    const week = item.week || 'Unknown';
-    if (!acc[month]) acc[month] = {};
-    if (!acc[month][week]) acc[month][week] = [];
-    acc[month][week].push(item);
-    return acc;
-  }, {});
-
-const getLatestWeekInfo = (data) => {
-  if (!data?.length) return null;
-  const grouped = groupByMonthWeek(data);
-  const latestMonth = sortMonthsDesc(Object.keys(grouped))[0];
+const pickLatest = (rows, countKey) => {
+  if (!rows?.length) return null;
+  const months = sortMonthsDesc([...new Set(rows.map(r => r.month))]);
+  const latestMonth = months[0];
   if (!latestMonth) return null;
-  const latestWeek = sortWeeksDesc(Object.keys(grouped[latestMonth]))[0];
-  const count = latestWeek ? grouped[latestMonth][latestWeek].length : 0;
+  const weekRows = rows.filter(r => r.month === latestMonth);
+  const latestWeek = sortWeeksDesc(weekRows.map(r => r.week))[0];
+  const count = weekRows.find(r => r.week === latestWeek)?.[countKey] ?? 0;
   return { month: latestMonth, week: latestWeek, count };
 };
 
@@ -48,16 +42,16 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchAll = async () => {
-      // Flashcard latest
+      // Flashcard latest — same RPC used by Flashcard.jsx
       try {
-        const { data } = await supabase.from('flashcard').select('month, week').limit(5000);
-        setFlashcardInfo(getLatestWeekInfo(data));
+        const { data } = await supabase.rpc('get_distinct_flashcard_month_week');
+        setFlashcardInfo(pickLatest(data, 'card_count'));
       } catch {}
 
-      // Quiz latest
+      // Quiz latest — same RPC used by Quiz.jsx
       try {
-        const { data } = await supabase.from('questions').select('month, week').limit(5000);
-        setQuizInfo(getLatestWeekInfo(data));
+        const { data } = await supabase.rpc('get_distinct_month_week');
+        setQuizInfo(pickLatest(data, 'cnt'));
       } catch {}
 
       // Read latest — walk study_materials/month/week/

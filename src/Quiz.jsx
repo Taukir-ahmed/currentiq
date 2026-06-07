@@ -6,6 +6,7 @@ import QuizPlay from './QuizPlay';
 import QuizResult from './QuizResult';
 
 const MONTHS = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+
 const sortMonthsDesc = (months) =>
   [...months].sort((a, b) => {
     const al = a.toLowerCase(), bl = b.toLowerCase();
@@ -26,16 +27,14 @@ const sortWeeks = (weeks) =>
 
 const Quiz = () => {
   const navigate = useNavigate();
-  // monthData shape: { [month]: { [week]: count } } — counts only, no question content
   const [monthData, setMonthData] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedMonth, setExpandedMonth] = useState(null);
-  const [loadingWeek, setLoadingWeek] = useState(null); // "month||week" key while fetching
+  const [loadingWeek, setLoadingWeek] = useState(null);
 
-  // Phase flow: list → config → play → result
   const [phase, setPhase] = useState('list');
-  const [selectedDeck, setSelectedDeck] = useState(null); // { name, questions }
+  const [selectedDeck, setSelectedDeck] = useState(null);
   const [playQuestions, setPlayQuestions] = useState([]);
   const [timerMinutes, setTimerMinutes] = useState(0);
   const [quizAnswers, setQuizAnswers] = useState([]);
@@ -44,18 +43,18 @@ const Quiz = () => {
     const fetchStructure = async () => {
       try {
         setIsLoading(true);
-        // Only fetch month + week — no question content needed for the list view
-        const { data, error } = await supabase.from('questions').select('month, week').limit(5000);
+    
+        const { data, error } = await supabase.rpc('get_distinct_month_week');
         if (error) throw error;
-
-        const grouped = data.reduce((acc, q) => {
-          const month = q.month || 'Unknown Month';
-          const week = q.week || 'Unknown Week';
+    
+        const grouped = data.reduce((acc, row) => {
+          const month = (row.month || 'Unknown Month').trim();
+          const week  = (row.week  || 'Unknown Week').trim();
           if (!acc[month]) acc[month] = {};
-          acc[month][week] = (acc[month][week] || 0) + 1;
+          acc[month][week] = Number(row.cnt) || 0;
           return acc;
         }, {});
-
+    
         setMonthData(grouped);
         const sorted = sortMonthsDesc(Object.keys(grouped));
         if (sorted[0]) setExpandedMonth(sorted[0]);
@@ -100,7 +99,6 @@ const Quiz = () => {
     setPhase('result');
   };
 
-  // ─── Phase Views ───────────────────────────────────────────────────────────
   if (phase === 'config') {
     return (
       <QuizConfig
