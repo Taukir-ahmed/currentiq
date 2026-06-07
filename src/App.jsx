@@ -31,8 +31,8 @@ function App() {
           {/* Mobile top bar */}
           <header className="md:hidden flex items-center justify-between bg-[#141414] px-4 py-3 shrink-0">
             <h1 className="text-xl font-black tracking-wide flex items-center gap-1">
-              <span className="text-white">CURRENT</span>
-              <span className="text-orange-500">IQ</span>
+              <span className="text-white">CA</span>
+              <span className="text-orange-500">Weekly</span>
             </h1>
             <button
               onClick={() => setSidebarOpen(true)}
